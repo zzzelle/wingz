@@ -37,5 +37,8 @@ class User(AbstractUser):
     username = None
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
-    
+
     objects = UserManager()
+    
+    class Meta:
+        ordering = ["id_user"]

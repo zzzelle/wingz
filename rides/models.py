@@ -26,9 +26,15 @@ class Ride(models.Model):
     def __str__(self):
         return f"[Ride {self.id_ride} - {self.status}]  Driver: {self.id_driver.email}, Rider: {self.id_rider.email}"
 
+    class Meta:
+        ordering = ["-id_ride"]
+
 
 class RideEvent(models.Model):
     id_ride_event = models.AutoField(primary_key=True)
     id_ride = models.ForeignKey(Ride, on_delete=models.CASCADE, related_name='ride_events')
     description = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ["created_at"]
