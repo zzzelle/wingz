@@ -34,6 +34,8 @@ class RideSerializer(serializers.ModelSerializer):
         fields = [
             "id_ride", 
             "status", 
+            "id_rider", 
+            "id_driver", 
             "rider", 
             "driver", 
             "pickup_latitude", 
@@ -45,4 +47,5 @@ class RideSerializer(serializers.ModelSerializer):
             "todays_ride_events"
         ]
         read_only_fields = ["id_ride"]
+        extra_kwargs = {'id_rider': {'write_only': True}, 'id_driver': {'write_only': True}}
 
