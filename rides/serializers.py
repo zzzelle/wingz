@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from rides.models import Ride, RideEvent
+from users.serializers import UserSerializer
 
 
 class RideEventSerializer(serializers.ModelSerializer):
@@ -16,18 +17,32 @@ class RideEventSerializer(serializers.ModelSerializer):
         
 
 class RideSerializer(serializers.ModelSerializer):
+    rider = UserSerializer(source='id_rider', read_only=True)
+    driver = UserSerializer(source='id_driver', read_only=True)
+    ride_events = RideEventSerializer(many=True, read_only=True) 
+    todays_ride_events = serializers.SerializerMethodField()
+
+    def get_todays_ride_events(self, obj):
+        from django.utils import timezone
+        today = timezone.now().date()
+
+        todays_events = [e for e in obj.ride_events.all() if e.created_at.date() == today]
+        return RideEventSerializer(todays_events, many=True).data
+
     class Meta:
         model = Ride
         fields = [
             "id_ride", 
             "status", 
-            "id_rider", 
-            "id_driver", 
+            "rider", 
+            "driver", 
             "pickup_latitude", 
             "pickup_longitude", 
             "dropoff_latitude", 
             "dropoff_longitude", 
             "pickup_time",
+            "ride_events",
+            "todays_ride_events"
         ]
         read_only_fields = ["id_ride"]
 
