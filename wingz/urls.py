@@ -18,11 +18,14 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework import routers
 
+from rides.views import RideViewSet, RideEventViewSet
 from users.views import UserViewSet
 
 
 router = routers.DefaultRouter()
 router.register(r"users", UserViewSet)
+router.register(r"rides", RideViewSet)
+router.register(r"ride-events", RideEventViewSet)
 
 
 urlpatterns = [
