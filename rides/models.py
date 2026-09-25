@@ -15,7 +15,7 @@ class Ride(models.Model):
 
     id_ride = models.AutoField(primary_key=True)
     status = models.CharField(
-        max_length=10, choices=STATUS_CHOICES, default=STATUS_PICKUP
+        max_length=10, choices=STATUS_CHOICES, default=STATUS_PICKUP, db_index=True
     )
     id_rider = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="rider_rides"
@@ -27,7 +27,7 @@ class Ride(models.Model):
     pickup_longitude = models.FloatField()
     dropoff_latitude = models.FloatField()
     dropoff_longitude = models.FloatField()
-    pickup_time = models.DateTimeField()
+    pickup_time = models.DateTimeField(db_index=True)
 
     def __str__(self):
         return f"[Ride {self.id_ride} - {self.status}]  \
@@ -47,4 +47,9 @@ class RideEvent(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        indexes = [
+            models.Index(
+                fields=["id_ride", "created_at"], name="id_ride_created_at_idx"
+            ),
+        ]
         ordering = ["created_at"]
