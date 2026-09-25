@@ -1,3 +1,5 @@
+from datetime import timedelta
+from django.utils import timezone
 from rest_framework import serializers
 
 from rides.models import Ride, RideEvent
@@ -23,10 +25,9 @@ class RideSerializer(serializers.ModelSerializer):
     todays_ride_events = serializers.SerializerMethodField()
 
     def get_todays_ride_events(self, obj):
-        from django.utils import timezone
-        today = timezone.now().date()
-
-        todays_events = [e for e in obj.ride_events.all() if e.created_at.date() == today]
+        # Even though the field name is today, we're actually getting the last 24 hours as specified in the requirements.
+        last_24h = timezone.now() - timedelta(hours=24)
+        todays_events = [e for e in obj.ride_events.all() if e.created_at >= last_24h]
         return RideEventSerializer(todays_events, many=True).data
 
     class Meta:
@@ -48,4 +49,3 @@ class RideSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id_ride"]
         extra_kwargs = {'id_rider': {'write_only': True}, 'id_driver': {'write_only': True}}
-

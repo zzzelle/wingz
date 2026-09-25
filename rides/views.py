@@ -7,7 +7,7 @@ from rides.serializers import RideSerializer, RideEventSerializer
 
 
 class RideViewSet(viewsets.ModelViewSet):
-    queryset = Ride.objects.all().prefetch_related('ride_events').order_by('-id_ride')
+    queryset = Ride.objects.all().select_related('id_rider', 'id_driver').prefetch_related('ride_events').order_by('-id_ride')
     serializer_class = RideSerializer
     filter_backends = [DjangoFilterBackend, DistanceOrderingFilter]
     filterset_class = RideFilter
