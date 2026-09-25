@@ -1,3 +1,6 @@
+from datetime import timedelta
+from django.db.models import Prefetch
+from django.utils import timezone
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import viewsets
@@ -39,15 +42,30 @@ from rides.serializers import RideSerializer, RideEventSerializer
 )
 class RideViewSet(viewsets.ModelViewSet):
     queryset = (
-        Ride.objects.all()
-        .select_related("id_rider", "id_driver")
-        .prefetch_related("ride_events")
-        .order_by("-id_ride")
+        Ride.objects.all().select_related("id_rider", "id_driver").order_by("-id_ride")
     )
     serializer_class = RideSerializer
     filter_backends = [DjangoFilterBackend, DistanceOrderingFilter]
     filterset_class = RideFilter
     ordering_fields = ["pickup_time", "distance"]
+
+    def get_queryset(self):
+        last_24h = timezone.now() - timedelta(hours=24)
+        return (
+            super()
+            .get_queryset()
+            .prefetch_related(
+                Prefetch(
+                    "ride_events",
+                    queryset=RideEvent.objects.filter(created_at__gte=last_24h),
+                    to_attr="todays_ride_events",
+                )
+            )
+        )
+
+    def perform_create(self, serializer):
+        ride = serializer.save()
+        serializer.instance = self.get_queryset().get(pk=ride.pk)
 
 
 @extend_schema(tags=["RideEvent"])

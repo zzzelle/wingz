@@ -135,36 +135,49 @@ A ride links a rider and a driver, has a status (`en-route`, `pickup`, or `dropo
 When creating or updating a ride, pass the users' IDs as `id_rider` and `id_driver`. The responses though will just show them as nested `rider` and `driver` objects instead. 
 This might be better for other apps to directly receive the user information instead of having to call a separate query.
 
-Each ride in a response includes:
-- `ride_events`: all events for the ride.
-- `todays_ride_events`: only the events created in the last 24 hours. This is a rolling 24-hour window as stated in the requirements, not the current calendar date.
+Each ride in a response includes `todays_ride_events` which are the events created in the last 24 hours. This is a rolling 24-hour window as stated in the requirements, not the current calendar date.
 
 > [!NOTE]
-> Based on my understanding of the requirements, each Ride in the response must include its related RideEvents. So that's why I included a `ride_events` with all related events of the Ride.  
-> It was also specified to return an **extra field** called `todays_ride_events`, to only return the events of the last 24 hours.  
-> To be honest, if the point of the `todays_ride_events` was so that the full table is not to be loaded, it really won't be loaded anyway because the Ride API is already paginated.
-> So we only load the Ride Events of the specified Ride. And if the point was because the table grows very large, I would understand only loading the last 24h instead of all the related ride events.  
-> But I still did optimize the queries either way. This will be separately explained under [Performance](#performance).
+> Based on my understanding of the requirements, each Ride in the response must include its related RideEvents.  
+> And it was also specified to return an **extra field** called `todays_ride_events`, to only return the events of the last 24 hours. Originally, I treated this as returning a `ride_events` field with all related events of the Ride, and an extra `todays_ride_events` field that returns the events of the last 24 hours only. And to limit the SQL queries to 2, I prefetched the related events, and just did today's filter in Python.  
+> However, I really don't get the point of having an extra `todays_ride_events` if the reason this was added was so that the full table is not to be loaded. Technically, the Ride Event table really won't be loaded anyway because the Ride API is already paginated, meaning the prefetch of related events is filtered anyway to those specific Ride ids. However, even if not the full table was loaded, it still loads the full related events of each ride. So having this extra field and filter with Python did not add any benefit, and didn't solve the pain of the growing events table.  
+> So I changed it to just remove `ride_events` field altogether and only provide `todays_ride_events`. In a way, this still satisfies the spec where each Ride should include its related RideEvents, just only limited to the last 24h.
 
 Example response for one ride:
 
 ```json
 {
-  "id_ride": 4,
-  "status": "en-route",
-  "rider": {"id_user": 2, "email": "rider@example.com", "role": "rider", "first_name": "", "last_name": "", "phone_number": ""},
-  "driver": {"id_user": 3, "email": "driver@example.com", "role": "driver", "first_name": "", "last_name": "", "phone_number": ""},
-  "pickup_latitude": 14.55,
-  "pickup_longitude": 121.02,
-  "dropoff_latitude": 14.6,
-  "dropoff_longitude": 121.05,
-  "pickup_time": "2026-09-25T08:00:00Z",
-  "ride_events": [
-    {"id_ride_event": 1, "id_ride": 4, "description": "Status changed to pickup", "created_at": "2026-09-25T08:01:00Z"}
-  ],
-  "todays_ride_events": [
-    {"id_ride_event": 1, "id_ride": 4, "description": "Status changed to pickup", "created_at": "2026-09-25T08:01:00Z"}
-  ]
+    "id_ride": 1012,
+    "status": "dropoff",
+    "rider": {
+        "id_user": 29,
+        "email": "rider7@example.com",
+        "role": "rider",
+        "first_name": "Chloe",
+        "last_name": "Castillo",
+        "phone_number": ""
+    },
+    "driver": {
+        "id_user": 30,
+        "email": "driver2@example.com",
+        "role": "driver",
+        "first_name": "Ethan",
+        "last_name": "Walker",
+        "phone_number": ""
+    },
+    "pickup_latitude": 40.785251,
+    "pickup_longitude": -73.974873,
+    "dropoff_latitude": 40.745405,
+    "dropoff_longitude": -73.974719,
+    "pickup_time": "2026-08-11T10:17:40Z",
+    "todays_ride_events": [
+        {
+            "id_ride_event": 2602,
+            "id_ride": 1012,
+            "description": "test today",
+            "created_at": "2026-09-25T12:19:06.646781Z"
+        }
+    ]
 }
 ```
 
@@ -207,9 +220,28 @@ The Ride List API uses a fixed number of queries, no matter however many rides a
 
 1. `COUNT(*)` for pagination.
 2. The rides, with rider and driver joined in (`select_related`).
-3. The ride events for the rides on the current page (`prefetch_related`). This doesn't load the full RideEvent table since we only filter those with the specified Ride id.
+3. The ride events from the last 24 hours, for the rides on the current page only.
 
-To avoid additional queries, we filter `todays_ride_events` in Python from the prefetched events. Specifically using `.all()` so it uses the prefetched and not run another query.
+For the 3rd query, I used `prefetch_related` with a `Prefetch` object, so the 24-hour filter runs in SQL and older events are never loaded:
+
+```python
+Prefetch(
+    "ride_events",
+    queryset=RideEvent.objects.filter(created_at__gte=last_24h),
+    to_attr="todays_ride_events",
+)
+```
+
+- The filter is built in `get_queryset()` so the 24-hour window is based on the time of each request, not the time the server started.
+- `to_attr` stores the result as a list on each ride, which the serializer reads directly as `todays_ride_events`. Rides with no recent events get an empty list.
+- Creating a ride re-fetches it through `get_queryset()` (`perform_create`) so the response also includes `todays_ride_events`.
+
+### Indexes
+
+I have added indexes on the following fields as well since we always filter and sort on it:
+- `pickup_time`
+- `status`
+- RideEvent `id_ride` and `created_at`
 
 ### Ordering 
 
@@ -221,6 +253,14 @@ return qs.annotate(
     distance_km=ExpressionWrapper(r * c, output_field=FloatField())
 )
 ```
+
+#### PostGIS
+
+This sorting with Haversine works and is optimized enough since the computation is done inside the database engine, however, it still scans the whole table (calculate value for every ride, then sort). But for production, there might be a better way to implement this. We could use this Postgres extension for geographic data called PostGIS, and Django supports it. PostGIS has a nearest neighbour operator, so we can sort first the closest rows before even calculating the distance for every row. This way we don't have to calculate distance for the full table. This also still works with pagination.
+
+Trade-off though is the cost. We need PostGIS extension, and other system libraries for it. And then we'll  have to migrate our float coordinates to point fields.
+
+For this exam, I'm using Haversine. But it's worth noting other alternatives like PostGIS.
 
 ### Others
 
@@ -242,8 +282,8 @@ FROM
   JOIN rides_rideevent rre2 ON rr.id_ride = rre2.id_ride_id 
   JOIN users_user uu ON rr.id_driver_id = uu.id_user
 WHERE 
-  rre1.description LIKE '%pickup%'
-  AND rre2.description LIKE '%dropoff%' 
+  rre1.description = 'Status changed to pickup'
+  AND rre2.description = 'Status changed to dropoff'
   AND Extract(EPOCH FROM (rre2.created_at :: TIMESTAMP - rre1.created_at :: TIMESTAMP)) / 3600 > 1 
 GROUP BY
 	Month, Driver 
@@ -257,8 +297,8 @@ Here is the sample of the result of the SQL statement on my local db:
 2. Then join the RideEvent table twice to get separate event records for pickup and dropoff
 3. Then join User table for the driver information
 4. Then we filter records:  
-   4.1 We find from RRE1 where a description has the word "pickup"  
-   4.2 We find from RRE2 where a description has the word "dropoff"  
+   4.1 We find from RRE1 where description = 'Status changed to pickup'
+   4.2 We find from RRE2 where description = 'Status changed to dropoff'
    4.3 And compute the difference of their `created_at` in hour unit, and immediately filter those that have > 1hr  
 5. Since we already have the needed tables, we now select the fields:  
    5.1 We format RRE2's `created_at` to be in YYYY-MM already  
