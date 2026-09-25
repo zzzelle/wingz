@@ -83,4 +83,3 @@ class RideViewSet(viewsets.ModelViewSet):
 class RideEventViewSet(viewsets.ModelViewSet):
     queryset = RideEvent.objects.all()
     serializer_class = RideEventSerializer
-    http_method_names = ["post", "delete"]
