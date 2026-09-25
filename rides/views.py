@@ -7,14 +7,19 @@ from rides.serializers import RideSerializer, RideEventSerializer
 
 
 class RideViewSet(viewsets.ModelViewSet):
-    queryset = Ride.objects.all().select_related('id_rider', 'id_driver').prefetch_related('ride_events').order_by('-id_ride')
+    queryset = (
+        Ride.objects.all()
+        .select_related("id_rider", "id_driver")
+        .prefetch_related("ride_events")
+        .order_by("-id_ride")
+    )
     serializer_class = RideSerializer
     filter_backends = [DjangoFilterBackend, DistanceOrderingFilter]
     filterset_class = RideFilter
-    ordering_fields = ['pickup_time', 'distance']
+    ordering_fields = ["pickup_time", "distance"]
 
 
 class RideEventViewSet(viewsets.ModelViewSet):
     queryset = RideEvent.objects.all()
     serializer_class = RideEventSerializer
-    http_method_names=['post', 'delete']
+    http_method_names = ["post", "delete"]

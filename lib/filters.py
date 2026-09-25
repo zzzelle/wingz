@@ -9,22 +9,21 @@ from rides.models import Ride
 
 class RideFilter(django_filters.FilterSet):
     rider__email = django_filters.CharFilter(
-        field_name='id_rider__email', lookup_expr='iexact', label='Rider Email'
+        field_name="id_rider__email", lookup_expr="iexact", label="Rider Email"
     )
 
     class Meta:
         model = Ride
-        fields = ['rider__email', "status"]
+        fields = ["rider__email", "status"]
 
 
 class DistanceOrderingFilter(filters.OrderingFilter):
-
     def filter_queryset(self, request, queryset, view):
         ordering = self.get_ordering(request, queryset, view)
         if not ordering:
             return queryset
 
-        if any(f.lstrip('-') == 'distance' for f in ordering):
+        if any(f.lstrip("-") == "distance" for f in ordering):
             errors = {}
             lat = self.validate_lat_lng(request, "lat", 90, errors)
             lng = self.validate_lat_lng(request, "lng", 180, errors)
@@ -32,21 +31,21 @@ class DistanceOrderingFilter(filters.OrderingFilter):
                 raise serializers.ValidationError(errors)
 
             queryset = self.annotate_distance(queryset, lat, lng)
-            ordering = [f.replace('distance', 'distance_km') for f in ordering]
+            ordering = [f.replace("distance", "distance_km") for f in ordering]
 
         return queryset.order_by(*ordering)
 
     def annotate_distance(self, qs, lat, lng):
         """
-        Annotate the queryset with a calculated distance in km from the given lat/lng to the pickup location.
-        Uses the Haversine formula to calculate the distance.
+        Annotate the queryset with a calculated distance in km from the given lat/lng
+        to the pickup location. Uses the Haversine formula to calculate the distance.
         """
 
         # 1. Convert decimal degrees to radians
         lat1 = Radians(Value(lat))
         lng1 = Radians(Value(lng))
-        lat2 = Radians(F('pickup_latitude'))
-        lng2 = Radians(F('pickup_longitude'))
+        lat2 = Radians(F("pickup_latitude"))
+        lng2 = Radians(F("pickup_longitude"))
 
         # 2. Differences between the two points
         dlat = lat2 - lat1
@@ -64,9 +63,16 @@ class DistanceOrderingFilter(filters.OrderingFilter):
         #    d = r * c, with r = Earth's radius in km (use 3956 for miles)
         r = 6371.0
 
-        return qs.annotate(distance_km=ExpressionWrapper(r * c, output_field=FloatField()))
+        return qs.annotate(
+            distance_km=ExpressionWrapper(r * c, output_field=FloatField())
+        )
 
     def validate_lat_lng(self, request, param, limit, errors):
+        """
+        Validate a lat/lng query parameter.
+        Returns the value already typecasted in float if valid,
+        otherwise adds an error to the errors dict.
+        """
         value = request.query_params.get(param)
 
         if not value:
@@ -80,8 +86,9 @@ class DistanceOrderingFilter(filters.OrderingFilter):
                 errors[param] = [f"A valid number is required, got '{value}'."]
 
         return value
-    
+
     def to_html(self, request, queryset, view):
-        # Hide the ordering widget in the browsable API to avoid confusion, since it only allows 1 selection 
-        # but multiple ordering fields are actually allowed. The user can still use the query parameter directly.
-        return ''
+        # Hide the ordering widget in the browsable API to avoid confusion, since
+        # it only allows 1 selection but multiple ordering fields are actually allowed.
+        # The user can still use the query parameter directly.
+        return ""

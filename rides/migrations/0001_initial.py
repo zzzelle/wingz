@@ -15,26 +15,58 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Ride',
+            name="Ride",
             fields=[
-                ('id_ride', models.AutoField(primary_key=True, serialize=False)),
-                ('status', models.CharField(choices=[('en-route', 'En Route'), ('pickup', 'Pickup'), ('dropoff', 'Dropoff')], default='pickup', max_length=10)),
-                ('pickup_latitude', models.FloatField()),
-                ('pickup_longitude', models.FloatField()),
-                ('dropoff_latitude', models.FloatField()),
-                ('dropoff_longitude', models.FloatField()),
-                ('pickup_time', models.DateTimeField()),
-                ('id_driver', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='driver_rides', to=settings.AUTH_USER_MODEL)),
-                ('id_rider', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='rider_rides', to=settings.AUTH_USER_MODEL)),
+                ("id_ride", models.AutoField(primary_key=True, serialize=False)),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("en-route", "En Route"),
+                            ("pickup", "Pickup"),
+                            ("dropoff", "Dropoff"),
+                        ],
+                        default="pickup",
+                        max_length=10,
+                    ),
+                ),
+                ("pickup_latitude", models.FloatField()),
+                ("pickup_longitude", models.FloatField()),
+                ("dropoff_latitude", models.FloatField()),
+                ("dropoff_longitude", models.FloatField()),
+                ("pickup_time", models.DateTimeField()),
+                (
+                    "id_driver",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="driver_rides",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "id_rider",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="rider_rides",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='RideEvent',
+            name="RideEvent",
             fields=[
-                ('id_ride_event', models.AutoField(primary_key=True, serialize=False)),
-                ('description', models.CharField(max_length=255)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('id_ride', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='ride_events', to='rides.ride')),
+                ("id_ride_event", models.AutoField(primary_key=True, serialize=False)),
+                ("description", models.CharField(max_length=255)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                (
+                    "id_ride",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="ride_events",
+                        to="rides.ride",
+                    ),
+                ),
             ],
         ),
     ]
