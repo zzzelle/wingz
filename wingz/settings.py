@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "django_filters",
+    "drf_spectacular",
     "rides",
     "users",
 ]
@@ -148,6 +149,7 @@ MAILERS = {
 # https://www.django-rest-framework.org/api-guide/requests/
 
 REST_FRAMEWORK = {
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
         "rest_framework.authentication.BasicAuthentication",
@@ -169,4 +171,14 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
     "UPDATE_LAST_LOGIN": True,
+}
+
+# DRF Spectacular
+# https://drf-spectacular.readthedocs.io/en/latest/readme.html
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Wingz Ride API",
+    "DESCRIPTION": "A REST API for managing rides.",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
 }
