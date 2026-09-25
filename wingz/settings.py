@@ -25,7 +25,7 @@ load_dotenv(BASE_DIR / ".env")
 SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-dev-key")
 
 # Set DEBUG to False as a default for safety   https://docs.djangoproject.com/en/dev/ref/settings/#debug
-DEBUG = os.environ.get("DEBUG", "False")
+DEBUG = os.environ.get("DEBUG", "False").lower() == "true"
 
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
@@ -182,3 +182,25 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
 }
+
+
+# Log every SQL query to the console, for demos and debugging.
+# Only works when DEBUG is True, since Django only records queries in debug mode.
+if os.environ.get("LOG_SQL", "False").lower() == "true":
+    LOGGING = {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "formatters": {
+            "sql": {"format": "\n[SQL] %(message)s"},
+        },
+        "handlers": {
+            "sql_console": {"class": "logging.StreamHandler", "formatter": "sql"},
+        },
+        "loggers": {
+            "django.db.backends": {
+                "handlers": ["sql_console"],
+                "level": "DEBUG",
+                "propagate": False,
+            },
+        },
+    }
