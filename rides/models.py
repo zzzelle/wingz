@@ -1,3 +1,4 @@
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
 from users.models import User
@@ -23,10 +24,18 @@ class Ride(models.Model):
     id_driver = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="driver_rides"
     )
-    pickup_latitude = models.FloatField()
-    pickup_longitude = models.FloatField()
-    dropoff_latitude = models.FloatField()
-    dropoff_longitude = models.FloatField()
+    pickup_latitude = models.FloatField(
+        validators=[MinValueValidator(-90.0), MaxValueValidator(90.0)]
+    )
+    pickup_longitude = models.FloatField(
+        validators=[MinValueValidator(-180.0), MaxValueValidator(180.0)]
+    )
+    dropoff_latitude = models.FloatField(
+        validators=[MinValueValidator(-90.0), MaxValueValidator(90.0)]
+    )
+    dropoff_longitude = models.FloatField(
+        validators=[MinValueValidator(-180.0), MaxValueValidator(180.0)]
+    )
     pickup_time = models.DateTimeField(db_index=True)
 
     def __str__(self):

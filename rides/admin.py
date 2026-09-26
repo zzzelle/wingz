@@ -1,10 +1,10 @@
 from django.contrib import admin
-from unfold.admin import ModelAdmin
+from unfold.admin import ModelAdmin, TabularInline
 
 from rides.models import Ride, RideEvent
 
 
-class RideEventInline(admin.TabularInline):
+class RideEventInline(TabularInline):
     model = RideEvent
     extra = 0
     fields = ["description", "created_at"]
