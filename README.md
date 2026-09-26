@@ -8,7 +8,19 @@ A REST API for managing rides.
 ✅ Only Users with `admin` role have permission to use the APIs.  
 ✅ The Ride API includes filtering, sorting by distance, and pagination.  
 
-## Tech stack
+### Table of contents
+
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Setup](#setup)
+- [Authentication](#authentication)
+- [Endpoints](#endpoints)
+- [Performance](#performance)
+- [Design Decisions](#design-decisions)
+- [Bonus - SQL](#bonus---sql)
+- [Docs](#docs)
+
+## Tech Stack
 
 - Python 3.12, Django 6.1, Django REST Framework 3.18
 - `django-filter` for filtering
@@ -17,7 +29,7 @@ A REST API for managing rides.
 - `black` and `flake8` for formatting and linting
 - `drf-spectacular` for API docs
 
-## Project structure
+## Project Structure
 
 ```
 lib/        Shared code: ride filters, distance ordering, admin-only permission
@@ -121,7 +133,7 @@ Users can be of 3 roles: `admin`, `driver`, or `rider` (the default). (See: [Use
 
 The password is write-only and is hashed when the user is created.
 
-Also, see [Design decisions: Authentication and the User model](#authentication-and-the-user-model).
+Also, see [Design decisions: User model](#user-model).
 
 ### Rides
 
